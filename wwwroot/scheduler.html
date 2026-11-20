@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bojosh - FIT Study Scheduler</title>
+    <link rel="stylesheet" href="styles-scheduler.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <span class="logo-text">Bojosh</span>
+                <span class="version">v1.0</span>
+            </div>
+            <h1>FIT Study Scheduler</h1>
+            <button class="info-btn" title="Information">ℹ</button>
+        </header>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Left Sidebar -->
+            <aside class="sidebar">
+                <div class="sidebar-section">
+                    <h3>Rok a semestr</h3>
+                    <select id="semester-select" class="select-input">
+                        <option value="2025/2026">2025/2026</option>
+                        <option value="2026/2027">2026/2027</option>
+                    </select>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3>Typ semestru</h3>
+                    <div class="radio-group">
+                        <label>
+                            <input type="radio" name="semester-type" value="winter" checked>
+                            Zimní
+                        </label>
+                        <label>
+                            <input type="radio" name="semester-type" value="summer">
+                            Letní
+                        </label>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3>Studium</h3>
+                    <div class="checkbox-group" id="study-programs">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3>Ročník</h3>
+                    <div class="checkbox-group">
+                        <label>
+                            <input type="checkbox" value="1st" checked> 1. ročník
+                        </label>
+                        <label>
+                            <input type="checkbox" value="2nd"> 2. ročník
+                        </label>
+                        <label>
+                            <input type="checkbox" value="3rd"> 3. ročník
+                        </label>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3>Povinně předměty</h3>
+                    <label>
+                        <input type="checkbox" id="required-only"> Pouze povinné
+                    </label>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3>Volitelné předměty</h3>
+                    <label>
+                        <input type="checkbox" id="elective-only"> Pouze volitelné
+                    </label>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3>Vybrané předměty</h3>
+                    <label>
+                        <input type="checkbox" id="selected-only"> Pouze vybraná
+                    </label>
+                </div>
+
+                <button class="action-btn load-btn" id="load-btn">Načíst předměty</button>
+
+                <div class="export-section">
+                    <button class="export-btn" id="export-json">Uložit JSON</button>
+                    <button class="export-btn" id="export-calendar">Exportovat iCalendar</button>
+                </div>
+
+                <div class="sidebar-section">
+                    <div class="conflict-info">
+                        <p><strong>Pravidla pro generátor</strong></p>
+                        <small>Výběr předmětů se bude kontrolovat.</small>
+                    </div>
+                </div>
+
+                <div class="schedule-info">
+                    <p>Rozvrh: <strong id="schedule-count">0/0</strong></p>
+                </div>
+            </aside>
+
+            <!-- Right Content Area -->
+            <div class="content-area">
+                <!-- Tabs -->
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="schedule">Pracovní rozvrh</button>
+                    <button class="tab-btn" data-tab="research">Výsledný rozvrh</button>
+                    <button class="tab-btn" data-tab="summary">Rozsahy</button>
+                </div>
+
+                <!-- Schedule Tab -->
+                <div class="tab-content active" id="schedule-tab">
+                    <!-- Timetable -->
+                    <div class="timetable-container">
+                        <table class="timetable">
+                            <thead>
+                                <tr>
+                                    <th class="time-col">Čas</th>
+                                    <th>Pondělí</th>
+                                    <th>Úterý</th>
+                                    <th>Středa</th>
+                                    <th>Čtvrtek</th>
+                                    <th>Pátek</th>
+                                </tr>
+                            </thead>
+                            <tbody id="timetable-body">
+                                <!-- Populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Add Class Form -->
+                    <div class="add-class-form">
+                        <h3>Vlastní hodina</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="class-day">Den:</label>
+                                <select id="class-day" class="form-input">
+                                    <option value="Monday">Pondělí</option>
+                                    <option value="Tuesday">Úterý</option>
+                                    <option value="Wednesday">Středa</option>
+                                    <option value="Thursday">Čtvrtek</option>
+                                    <option value="Friday">Pátek</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="class-start">Od:</label>
+                                <select id="class-start" class="form-input">
+                                    <option value="07:00">07:00</option>
+                                    <option value="08:00">08:00</option>
+                                    <option value="09:00">09:00</option>
+                                    <option value="10:00">10:00</option>
+                                    <option value="11:00">11:00</option>
+                                    <option value="12:00">12:00</option>
+                                    <option value="13:00">13:00</option>
+                                    <option value="14:00">14:00</option>
+                                    <option value="15:00">15:00</option>
+                                    <option value="16:00">16:00</option>
+                                    <option value="17:00">17:00</option>
+                                    <option value="18:00">18:00</option>
+                                    <option value="19:00">19:00</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="class-end">Do:</label>
+                                <select id="class-end" class="form-input">
+                                    <option value="07:50">07:50</option>
+                                    <option value="08:50">08:50</option>
+                                    <option value="09:50">09:50</option>
+                                    <option value="10:50">10:50</option>
+                                    <option value="11:50">11:50</option>
+                                    <option value="12:50">12:50</option>
+                                    <option value="13:50">13:50</option>
+                                    <option value="14:50">14:50</option>
+                                    <option value="15:50">15:50</option>
+                                    <option value="16:50">16:50</option>
+                                    <option value="17:50">17:50</option>
+                                    <option value="18:50">18:50</option>
+                                    <option value="19:50">19:50</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group full-width">
+                                <label for="class-name">Název:</label>
+                                <input type="text" id="class-name" class="form-input" placeholder="Název předmětu">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group full-width">
+                                <label for="class-location">Místnost:</label>
+                                <input type="text" id="class-location" class="form-input" placeholder="Místnost/Sál">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group full-width">
+                                <label for="class-instructor">Cvičící:</label>
+                                <input type="text" id="class-instructor" class="form-input" placeholder="Jméno cvičícího">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group full-width">
+                                <label for="class-info">Info:</label>
+                                <input type="text" id="class-info" class="form-input" placeholder="Další informace">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="class-color">Barva:</label>
+                                <select id="class-color" class="form-input">
+                                    <option value="green" selected>Zelená</option>
+                                    <option value="blue">Modrá</option>
+                                    <option value="red">Červená</option>
+                                    <option value="yellow">Žlutá</option>
+                                    <option value="purple">Fialová</option>
+                                    <option value="orange">Oranžová</option>
+                                </select>
+                            </div>
+                            <button class="action-btn add-class-btn" id="add-class-btn">Přidat předmět</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Research Tab -->
+                <div class="tab-content" id="research-tab">
+                    <div class="empty-state">
+                        <p>Obsah bude k dispozici v budoucí verzi</p>
+                    </div>
+                </div>
+
+                <!-- Summary Tab -->
+                <div class="tab-content" id="summary-tab">
+                    <div class="programs-list" id="programs-list">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="scheduler.js"></script>
+</body>
+</html>
+

@@ -1,164 +1,86 @@
 using System;
 using System.Text;
-using System.Net.Http;
-using System.Threading.Tasks;
-using System.Collections.Generic;
 using Microsoft.AspNetCore.Builder;
+using bojosh.Models;
+using bojosh.Options;
+using bojosh.Services;
+
+using Microsoft.Extensions.DependencyInjection;
 
 namespace bojosh;
 
-internal static class VutFitStaticUris
-{
-    public const string StudyProgrammesUri = "https://www.fit.vut.cz/study/programs/";
-    public const string StudyClassesUri = "https://www.fit.vut.cz/study/";
-}
-
-public class StudyProgramme
-{
-}
-
-public class StudyClass
-{
-}
-
-public record GetStudyProgrammesOpts(int Year);
-
-public static class StudyProgrammeHtmlParser
-{
-    public static List<StudyProgramme> Parse(string studyProgrammeHtml)
-    {
-        throw new NotImplementedException();
-    }
-}
-
-public static class StudyClassesHtmlParser
-{
-    public static List<StudyClass> Parse(string studyClassHtml)
-    {
-        throw new NotImplementedException();
-    }
-}
-
+/// <summary>
+/// Main entry point for the Bojosh application.
+/// This is an ASP.NET Core web application that provides endpoints to retrieve
+/// and display study programmes and classes from VUT FIT (Brno University of Technology).
+/// </summary>
 public static class Program
 {
-    private static List<StudyProgramme> GetStudyProgrammes(GetStudyProgrammesOpts? options)
-    {
-        List<StudyProgramme> programmes;
-
-        HttpClient client = new HttpClient();
-
-        Task<HttpResponseMessage> response = options switch
-        {
-            // if we have options
-            null => client.GetAsync(VutFitStaticUris.StudyProgrammesUri),
-            _ => client.GetAsync(VutFitStaticUris.StudyProgrammesUri + "?year=" + options.Year)
-        };
-
-        // careful blocking
-        try
-        {
-            HttpResponseMessage responseResult = response.Result;
-
-            try
-            {
-                responseResult.EnsureSuccessStatusCode();
-            }
-            catch (HttpRequestException)
-            {
-                // log exception
-                Console.Error.WriteLine(
-                    $"Unable to get study programmes: {responseResult.StatusCode}\n{responseResult}"
-                );
-
-                // rethrow
-                throw;
-            }
-
-            // parse programmes
-            // TODO: handle this better
-            string responseStringified = responseResult.Content.ReadAsStringAsync().Result;
-
-            programmes = StudyProgrammeHtmlParser.Parse(
-                responseStringified
-            );
-        }
-        catch (HttpRequestException requestException)
-        {
-            // log exception
-            Console.Error.WriteLine(requestException.Message);
-
-            // rethrow
-            throw;
-        }
-
-        return programmes;
-    }
-
-    private static List<StudyClass> GetStudyClasses()
-    {
-        List<StudyClass> classes;
-
-        HttpClient client = new HttpClient();
-
-        Task<HttpResponseMessage> response = client.GetAsync(VutFitStaticUris.StudyClassesUri);
-
-        try
-        {
-            HttpResponseMessage responseResult = response.Result;
-
-            try
-            {
-                responseResult.EnsureSuccessStatusCode();
-            }
-            catch (HttpRequestException requestException)
-            {
-                Console.Error.WriteLine(requestException.Message);
-                throw;
-            }
-
-            // TODO: handle this better
-            classes = StudyClassesHtmlParser.Parse(
-                responseResult.Content.ReadAsStringAsync().Result
-            );
-        }
-        catch (HttpRequestException requestException)
-        {
-            Console.Error.WriteLine(requestException.Message);
-            throw;
-        }
-
-        return classes;
-    }
-
+    /// <summary>
+    /// Main method - configures and runs the web application.
+    /// Sets up HTTP endpoints and starts the Kestrel server.
+    /// </summary>
     public static void Main()
     {
+        // Create a web application builder with default configuration
         WebApplicationBuilder builder = WebApplication.CreateBuilder();
 
+        // Register the StudyDataService as a scoped service for dependency injection.
+        // This allows the service lifetime to be managed by the dependency injection container
+        builder.Services.AddHttpClient<StudyDataService>();
+
+        // Build the web application
         WebApplication app = builder.Build();
 
-        app.MapGet("/", () => "Hello World!");
+        // Enable serving static files from the wwwroot directory and current directory
+        app.UseStaticFiles();
 
-        app.MapGet("/bojosh", string () =>
+        /// <summary>
+        /// Maps GET / endpoint - redirects to the scheduler UI.
+        /// </summary>
+        app.MapGet("/", () =>
         {
-            GetStudyProgrammesOpts options = new GetStudyProgrammesOpts(DateTime.Now.Year);
+            StudyDataService studyDataService = app.Services.GetRequiredService<StudyDataService>();
+            
+            // Create options for retrieving programmes for the current year
+            GetStudyProgrammesOpts options = new(DateTime.Now.Year, ProgrammeType.all, Language.cs);
 
-            StringBuilder sb = new StringBuilder();
+            // Build the response text using StringBuilder for efficient string concatenation
+            StringBuilder sb = new();
 
-            foreach (StudyProgramme programme in GetStudyProgrammes(options))
+            // Fetch and add study programmes to the response
+            try
             {
-                sb.AppendLine(programme.ToString());
+                foreach (StudyProgramme programme in studyDataService.GetStudyProgrammes(options))
+                {
+                    sb.AppendLine(programme.ToString());
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Error fetching study programmes: {ex.Message}");
             }
 
+            // Add a blank line separator between programmes and classes
             sb.AppendLine();
 
-            foreach (StudyClass studyClass in GetStudyClasses())
+            // Fetch and add study classes to the response
+            try
             {
-                sb.AppendLine(studyClass.ToString());
+                foreach (StudyClass studyClass in studyDataService.GetStudyClasses())
+                {
+                    sb.AppendLine(studyClass.ToString());
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Error fetching study classes: {ex.Message}");
             }
 
             return sb.ToString();
         });
 
+        // Start the application and listen for HTTP requests on the configured endpoints
         app.Run();
     }
 }
